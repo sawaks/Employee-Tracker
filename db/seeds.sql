@@ -15,11 +15,11 @@ VALUES ("Sales Lead", 100000, 1),
        ("Lawyer", 190000, 4);
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
-VALUES ("Jimin", "Park", 1, 1),
-       ("Seokjin", "Smith", 2, NULL),
-       ("Jordan", "Pio", 3, 3),
-       ("Sawako", "Goshima", 4, NULL),
-       ("Jungkook", "Jeon", 5, 5),
-       ("Yoongi", "Min", 6, NUll),
-       ("Namjoon", "Kim", 7, 7),
-       ("Taehyung","Kim", 8, NULL);
+VALUES ("Jimin", "Park", 1, NULL),
+       ("Seokjin", "Smith", 2, 1),
+       ("Jordan", "Pio", 3, NULL),
+       ("Sawako", "Goshima", 4, 3),
+       ("Jungkook", "Jeon", 5, NULL),
+       ("Yoongi", "Min", 6, 5),
+       ("Namjoon", "Kim", 7, NULL),
+       ("Taehyung","Kim", 8, 7);
