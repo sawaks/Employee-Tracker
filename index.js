@@ -1,13 +1,5 @@
-// const fs = require('fs');
-const express = require('express');
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
-
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
 
 const db = mysql.createConnection(
     {
@@ -45,7 +37,8 @@ function renderOption(options) {
     if (options) {
         switch (options) {
             case 'View all departments':
-                return db.query('SELECT id, department_name FROM department',
+                const sql1 = 'SELECT id, department_name FROM department';
+                return db.query(sql1,
                     function (err, results) {
                         if (err) throw err;
                         console.table(results);
@@ -53,20 +46,20 @@ function renderOption(options) {
                     });
 
             case 'View all roles':
-                return db.query('SELECT role.id, title, department_name, salary FROM role INNER JOIN department ON department.id = role.department_id',
-                    function (err, results) {
-                        if (err) throw err;
-                        console.table(results);
-                        db.end();
-                    });
+                const sql2 = 'SELECT role.id, title, department_name, salary FROM role INNER JOIN department ON department.id = role.department_id';
+                return db.query(sql2, function (err, results) {
+                    if (err) throw err;
+                    console.table(results);
+                    db.end();
+                });
 
             case 'View all employees':
-                return db.query(`SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee INNER JOIN role ON employee.role_id = role.id INNER JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id`,
-                    function (err, results) {
-                        if (err) throw err;
-                        console.table(results);
-                        db.end();
-                    });
+                const sql3 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee INNER JOIN role ON employee.role_id = role.id INNER JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id`;
+                return db.query(sql3, function (err, results) {
+                    if (err) throw err;
+                    console.table(results);
+                    db.end();
+                });
 
             case 'Add a department':
                 return inquirer.prompt({
@@ -75,7 +68,8 @@ function renderOption(options) {
                     message: 'What is the name of the department?',
                 })
                     .then(answers => {
-                        db.query('INSERT INTO department(department_name) VALUES (?)', [answers.newDepartment],
+                        const sql4 = 'INSERT INTO department(department_name) VALUES (?)';
+                        db.query(sql4, [answers.newDepartment],
                             function (err, results) {
                                 if (err) throw err;
                                 if (results) {
@@ -101,29 +95,40 @@ function renderOption(options) {
                     name: 'belongToDepartment',
                     message: 'Which department belong to?',
                     choices: function () {
+
                         return new Promise(function (resolve, reject) {
-                            db.query('SELECT department_name FROM department',
-                                function (err, results) {
-                                    if (err) {
-                                        reject(err);
-                                    } else {
-                                        let departments = results.map(result => result.department_name);
-                                        resolve(departments);
-                                    }
-                                });
+                            const sql5 = 'SELECT id, department_name FROM department';
+                            db.query(sql5, function (err, results) {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    let departments = results.map(result => (result.department_name));
+                                    resolve(departments);
+                                }
+                            });
                         });
                     }
                 }
                 ])
                     .then(answers => {
-                        db.query('INSERT INTO role(title, salary, department_id) VALUES (?, ?, ?)', [answers.newRole, answers.newSalary, answers.belongToDepartment],
+                        console.log(answers);
+                        const spl6 = `SELECT id FROM department WHERE department_name = ?`;
+                        db.query(spl6, [answers.belongToDepartment],
                             function (err, results) {
                                 if (err) throw err;
                                 if (results) {
-                                    console.log('Success to add new role name and salary.');
-                                    db.end();
+                                    const spl7 = 'INSERT INTO role(title, salary, department_id) VALUES (?, ?, ?)';
+                                    db.query(spl7, [answers.newRole, answers.newSalary, results[0].id],
+                                        function (err, results) {
+                                            if (err) throw err;
+                                            if (results) {
+                                                console.log('Success to add new role name and salary.');
+                                                db.end();
+                                            }
+                                        });
+
                                 }
-                            });
+                            })
                     });
 
             case 'Add an employee':
@@ -174,13 +179,30 @@ function renderOption(options) {
                 },
                 ])
                     .then(answers => {
-                        db.query('INSERT INTO role(title, salary, department_name) VALUES (?, ?, ?)', [answers.newRole, answers.newSalary, answers.belongToDepartment], function (err, results) {
-                            if (err) throw err;
-                            if (results) {
-                                console.log('Success to add new role name and salary.');
-                                db.end();
-                            }
-                        });
+                        db.query('SELECT id FROM role WHERE title = ?',
+                            [answers.belongToRole],
+                            function (err, results1) {
+                                if (err) throw err;
+                                if (results1) {
+
+                                    db.query(`SELECT id FROM employee WHERE CONCAT(first_name, ' ',last_name) LIKE ?`,
+                                        [answers.belongToManager],
+                                        function (err, results2) {
+                                            if (err) throw err;
+                                            if (results2) {
+                                                db.query('INSERT INTO employee(first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)',
+                                                    [answers.newFirstName, answers.newLastName, results1[0].id, results2[0].id],
+                                                    function (err, results) {
+                                                        if (err) throw err;
+                                                        if (results) {
+                                                            console.log('Success to add new employee.');
+                                                            db.end();
+                                                        }
+                                                    });
+                                            }
+                                        });
+                                }
+                            });
                     });
 
 
@@ -222,13 +244,40 @@ function renderOption(options) {
                 },
                 ])
                     .then(answers => {
-                        db.query('INSERT INTO role(title, salary,  department_name) VALUES (?, ?, ?)', [answers.newRole, answers.newSalary, answers.belongToDepartment], function (err, results) {
-                            if (err) throw err;
-                            if (results) {
-                                console.log('Success to add new role name and salary.');
-                                db.end();
-                            }
-                        });
+                        db.query(`SELECT id FROM employee WHERE CONCAT(first_name, ' ',last_name) LIKE ?`,
+                            [answers.emplyeeAll],
+                            function (err, results1) {
+                                if (err) throw err;
+                                if (results1) {
+                                    db.query('SELECT id FROM role WHERE title = ?',
+                                        [answers.belongToRole],
+                                        function (err, results2) {
+                                            if (err) throw err;
+                                            if (results2) {
+                                                db.query('SELECT manager_id FROM employee WHERE role_id = ?',
+                                                    [results2[0].id],
+                                                    function (err, results3) {
+                                                        if (err) throw err;
+                                                        if (results3) {
+                                                            db.query(`UPDATE employee SET role_id = ${results2[0].id}, manager_id = ${results3[0].manager_id} WHERE id = ${results1[0].id}`,
+                                                                function (err, results) {
+                                                                    if (err) throw err;
+                                                                    if (results) {
+                                                                        console.log(`Success to update the emplyee's role.`);
+                                                                        db.end();
+                                                                    }
+                                                                });
+                                                        }
+                                                    })
+
+                                            }
+                                        })
+
+                                }
+                            })
+
+
+
                     });
 
             default:
@@ -238,12 +287,3 @@ function renderOption(options) {
         return '';
     }
 }
-
-
-app.use((req, res) => {
-    res.status(404).end();
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
