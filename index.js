@@ -1,6 +1,5 @@
 const mysql = require('mysql2');
 const inquirer = require('inquirer');
-
 const db = mysql.createConnection(
     {
         host: '127.0.0.1',
@@ -11,6 +10,8 @@ const db = mysql.createConnection(
     console.log(`Connected to the employee_db database.`)
 );
 
+
+
 inquirer
     .prompt([
         {
@@ -20,25 +21,30 @@ inquirer
             choices: ['View all departments',
                 'View all roles',
                 'View all employees',
+                'View employees by manager',
+                'View employees by department',
                 'Add a department',
                 'Add a role',
                 'Add an employee',
-                'Update an employee role'],
+                'Update an employee role',
+                'Delete department',
+                'Delete role',
+                'Delete employee',],
 
         },
     ])
     .then(answers => {
-        renderOption(answers.options);
+        selectOption(answers.options);
 
     });
 
 
-function renderOption(options) {
+function selectOption(options) {
     if (options) {
         switch (options) {
             case 'View all departments':
-                const sql1 = 'SELECT id, department_name FROM department';
-                return db.query(sql1,
+                const sql = 'SELECT id, department_name FROM department';
+                return db.query(sql,
                     function (err, results) {
                         if (err) throw err;
                         console.table(results);
@@ -46,7 +52,10 @@ function renderOption(options) {
                     });
 
             case 'View all roles':
-                const sql2 = 'SELECT role.id, title, department_name, salary FROM role INNER JOIN department ON department.id = role.department_id';
+                const sql2 = `SELECT role.id, title, department_name, salary
+                                FROM role 
+                                INNER JOIN department 
+                                ON department.id = role.department_id`;
                 return db.query(sql2, function (err, results) {
                     if (err) throw err;
                     console.table(results);
@@ -54,12 +63,105 @@ function renderOption(options) {
                 });
 
             case 'View all employees':
-                const sql3 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee INNER JOIN role ON employee.role_id = role.id INNER JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id`;
+                const sql3 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+                                FROM employee 
+                                INNER JOIN role 
+                                ON employee.role_id = role.id 
+                                INNER JOIN department 
+                                ON role.department_id = department.id 
+                                LEFT JOIN employee manager 
+                                ON employee.manager_id = manager.id`;
                 return db.query(sql3, function (err, results) {
                     if (err) throw err;
                     console.table(results);
                     db.end();
                 });
+
+            case 'View employees by manager':
+                return inquirer.prompt({
+                    type: 'list',
+                    name: 'categorisedByManager',
+                    message: 'Choose by which manager?',
+                    choices: function () {
+                        return new Promise(function (resolve, reject) {
+                            db.query(`SELECT 
+                                        DISTINCT CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+                                        FROM employee JOIN employee manager 
+                                        ON employee.manager_id = manager.id`,
+                                function (err, results) {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        let managers = results.map(result => result.manager);
+                                        resolve(managers);
+                                    }
+                                });
+                        });
+                    }
+                })
+                    .then(answers => {
+                        const sql = `SELECT id FROM employee WHERE CONCAT(first_name, ' ',last_name) LIKE ?`;
+                        db.query(sql, [answers.categorisedByManager],
+                            function (err, results1) {
+                                if (err) throw err;
+                                if (results1) {
+                                    const sql = `SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS employee 
+                                                FROM employee 
+                                                WHERE manager_id = ?`;
+                                    db.query(sql, [results1[0].id],
+                                        function (err, results2) {
+                                            if (err) throw err;
+                                            if (results2) {
+                                                console.table(results2);
+                                                db.end();
+
+                                            }
+                                        });
+
+                                }
+                            });
+                    });
+
+            case 'View employees by department':
+                return inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'categorisedByDepartment',
+                        message: 'By which department?',
+                        choices: function () {
+                            return new Promise(function (resolve, reject) {
+                                const sql = 'SELECT department_name FROM department';
+                                db.query(sql, function (err, results) {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        let departments = results.map(result => (result.department_name));
+                                        resolve(departments);
+                                    }
+                                });
+                            });
+                        }
+                    }
+                ])
+                    .then(answers => {
+                        const spl = `SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS employee
+                                        FROM employee 
+                                        INNER JOIN role 
+                                        ON employee.role_id = role.id 
+                                        INNER JOIN department 
+                                        ON role.department_id = department.id 
+                                        WHERE department_name = ?`;
+                        db.query(spl, [answers.categorisedByDepartment],
+                            function (err, results) {
+                                if (err) throw err;
+                                if (results) {
+                                    console.table(results);
+                                    db.end();
+
+                                }
+                            })
+                    });
+
 
             case 'Add a department':
                 return inquirer.prompt({
@@ -68,8 +170,8 @@ function renderOption(options) {
                     message: 'What is the name of the department?',
                 })
                     .then(answers => {
-                        const sql4 = 'INSERT INTO department(department_name) VALUES (?)';
-                        db.query(sql4, [answers.newDepartment],
+                        const sql = 'INSERT INTO department(department_name) VALUES (?)';
+                        db.query(sql, [answers.newDepartment],
                             function (err, results) {
                                 if (err) throw err;
                                 if (results) {
@@ -95,10 +197,9 @@ function renderOption(options) {
                     name: 'belongToDepartment',
                     message: 'Which department belong to?',
                     choices: function () {
-
                         return new Promise(function (resolve, reject) {
-                            const sql5 = 'SELECT id, department_name FROM department';
-                            db.query(sql5, function (err, results) {
+                            const sql = 'SELECT id, department_name FROM department';
+                            db.query(sql, function (err, results) {
                                 if (err) {
                                     reject(err);
                                 } else {
@@ -108,17 +209,16 @@ function renderOption(options) {
                             });
                         });
                     }
-                }
-                ])
+                }])
                     .then(answers => {
                         console.log(answers);
-                        const spl6 = `SELECT id FROM department WHERE department_name = ?`;
-                        db.query(spl6, [answers.belongToDepartment],
+                        const spl = `SELECT id FROM department WHERE department_name = ?`;
+                        db.query(spl, [answers.belongToDepartment],
                             function (err, results) {
                                 if (err) throw err;
                                 if (results) {
-                                    const spl7 = 'INSERT INTO role(title, salary, department_id) VALUES (?, ?, ?)';
-                                    db.query(spl7, [answers.newRole, answers.newSalary, results[0].id],
+                                    const spl = 'INSERT INTO role(title, salary, department_id) VALUES (?, ?, ?)';
+                                    db.query(spl, [answers.newRole, answers.newSalary, results[0].id],
                                         function (err, results) {
                                             if (err) throw err;
                                             if (results) {
@@ -165,7 +265,10 @@ function renderOption(options) {
                     message: 'Which manager belong to?',
                     choices: function () {
                         return new Promise(function (resolve, reject) {
-                            db.query(`SELECT CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee JOIN employee manager ON employee.manager_id = manager.id`,
+                            db.query(`SELECT DISTINCT CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+                                        FROM employee 
+                                        JOIN employee manager 
+                                        ON employee.manager_id = manager.id`,
                                 function (err, results) {
                                     if (err) {
                                         reject(err);
@@ -279,6 +382,44 @@ function renderOption(options) {
 
 
                     });
+            case 'Delete department':
+                return inquirer.prompt([{
+                    type: 'list',
+                    name: 'deleteDepartment',
+                    message: 'Which department do you delete?',
+                    choices: function () {
+                        return new Promise(function (resolve, reject) {
+                            const sql = 'SELECT id, department_name FROM department';
+                            db.query(sql, function (err, results) {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    let departments = results.map(result => (result.department_name));
+                                    resolve(departments);
+                                }
+                            });
+                        });
+                    }
+                }])
+                    .then(answers => {
+                        const spl = `SELECT id FROM department WHERE department_name = ?`;
+                        db.query(spl, [answers.deleteDepartment],
+                            function (err, results) {
+                                if (err) throw err;
+                                if (results) {
+                                    const spl = 'DELETE FROM department WHERE id = ?';
+                                    db.query(spl, [results[0].id],
+                                        function (err, results) {
+                                            if (err) throw err;
+                                            if (results) {
+                                                console.log(`Success to delete ${answers.deleteDepartment}.`);
+                                                db.end();
+                                            }
+                                        });
+
+                                }
+                            })
+                    });
 
             default:
                 return '';
@@ -287,3 +428,4 @@ function renderOption(options) {
         return '';
     }
 }
+

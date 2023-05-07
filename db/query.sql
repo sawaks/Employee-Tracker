@@ -20,7 +20,7 @@ LEFT JOIN employee manager
 ON employee.manager_id = manager.id;
 
 SELECT 
-CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+DISTINCT CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
 FROM employee 
 JOIN employee manager 
 ON employee.manager_id = manager.id;
@@ -43,3 +43,16 @@ SELECT id, manager_id
 FROM employee 
 WHERE role_id = 2;
 
+SELECT manager_id FROM employee;
+
+SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS employee
+FROM employee 
+WHERE manager_id = 3;
+
+SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS employee
+FROM employee 
+INNER JOIN role 
+ON employee.role_id = role.id 
+INNER JOIN department 
+ON role.department_id = department.id 
+WHERE department_name = "Sales";
