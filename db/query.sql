@@ -115,3 +115,10 @@ SELECT DISTINCT manager_id FROM employee WHERE role_id = 2;
 SELECT * FROM role;
 
 SELECT * FROM employee;
+
+SELECT department.department_name, SUM(role.salary) AS budget
+FROM role
+LEFT JOIN department 
+ON role.department_id = department.id 
+GROUP BY department.department_name
+

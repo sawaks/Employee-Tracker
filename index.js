@@ -59,11 +59,11 @@ function viewDepartments() {
 }
 
 function viewAllRoles() {
-    const sql2 = `SELECT role.id, title, department_name, salary
+    const sql = `SELECT role.id, title, department_name, salary
     FROM role 
     INNER JOIN department 
     ON department.id = role.department_id`;
-    return db.query(sql2, function (err, results) {
+    return db.query(sql, function (err, results) {
         if (err) throw err;
         if (results.length === 0) {
             console.log("Currently no role. Input role.")
@@ -76,7 +76,7 @@ function viewAllRoles() {
 }
 
 function viewAllEmployees() {
-    const sql3 = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+    const sql = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
     FROM employee 
     LEFT JOIN role 
     ON employee.role_id = role.id 
@@ -84,9 +84,13 @@ function viewAllEmployees() {
     ON role.department_id = department.id 
     LEFT JOIN employee manager 
     ON employee.manager_id = manager.id`;
-    return db.query(sql3, function (err, results) {
+    return db.query(sql, function (err, results) {
         if (err) throw err;
-        console.table(results);
+        if (results.length === 0) {
+            console.log("Currently no employee. Input employee.")
+        } else {
+            console.table(results);
+        }
         manu();
     });
 
@@ -126,12 +130,12 @@ function viewEmplyeesByManager() {
                         db.query(sql, [results1[0].id],
                             function (err, results2) {
                                 if (err) throw err;
-                                if (results2) {
+                                if (results2.length === 0) {
+                                    console.log("Input info about employee.")
+                                } else {
                                     console.table(results2);
-
-                                    manu();
-
                                 }
+                                manu();
                             });
 
                     }
@@ -139,7 +143,7 @@ function viewEmplyeesByManager() {
         });
 }
 
-function ViewEmployeesByDepartment() {
+function viewEmployeesByDepartment() {
     return inquirer.prompt([
         {
             type: 'list',
@@ -171,16 +175,33 @@ function ViewEmployeesByDepartment() {
             db.query(spl, [answers.categorisedByDepartment],
                 function (err, results) {
                     if (err) throw err;
-                    if (results) {
+                    if (results.length === 0) {
+                        console.log("Input info about employee.")
+                    } else {
                         console.table(results);
-
-                        manu();
-
                     }
+                    manu();
                 })
         });
 }
 
+function viewBudget() {
+    const sql = `SELECT department.department_name, SUM(role.salary) AS budget
+    FROM role
+    LEFT JOIN department 
+    ON role.department_id = department.id 
+    GROUP BY department.department_name`;
+    return db.query(sql, function (err, results) {
+        if (err) throw err;
+        if (results.length === 0) {
+            console.log("Input info about budget.")
+        } else {
+            console.table(results);
+        }
+        manu();
+    });
+
+}
 function addDepartment() {
     return inquirer.prompt({
         type: 'input',
@@ -195,8 +216,8 @@ function addDepartment() {
                     if (results) {
                         console.log('Success to add new department name.');
 
-                        manu();
                     }
+                    manu();
                 });
         });
 }
@@ -243,9 +264,8 @@ function addRole() {
                                 if (err) throw err;
                                 if (results) {
                                     console.log('Success to add new role name and salary.');
-
-                                    manu();
                                 }
+                                manu();
                             });
 
                     }
@@ -320,9 +340,8 @@ function AddEmployee() {
                                             if (err) throw err;
                                             if (results) {
                                                 console.log('Success to add new employee.');
-
-                                                manu();
                                             }
+                                            manu();
                                         });
                                 }
                             });
@@ -383,9 +402,8 @@ function updateEmployeeRole() {
                                             if (err) throw err;
                                             if (results) {
                                                 console.log(`Success to update the emplyee's role.`);
-
-                                                manu();
                                             }
+                                            manu();
                                         });
                                 }
                             })
@@ -453,9 +471,8 @@ function updateEmployeesManagers() {
                                             if (err) throw err;
                                             if (results) {
                                                 console.log(`Success to update the emplyee's manager.`);
-
-                                                manu();
                                             }
+                                            manu();
                                         });
                                 }
                             })
@@ -496,7 +513,6 @@ function deleteDepartment() {
                                 console.log("results2:", results2)
                                 if (err) throw err;
                                 console.log(`Success to delete ${answers.deleteDepartment}.`);
-
                                 manu();
                             });
 
@@ -535,7 +551,6 @@ function deleteRole() {
                                 if (err) throw err;
                                 if (results4) {
                                     console.log(`Success to delete ${answers.deleteRole}.`);
-
                                     manu();
                                 }
                             }
@@ -573,7 +588,6 @@ function deleteEmployee() {
                     if (err) throw err;
                     if (results) {
                         console.log(`Success to delete ${answers.deleteEmployee}.`);
-
                         manu();
                     }
                 })
@@ -600,7 +614,11 @@ function selectOption(options) {
                 break;
 
             case 'View employees by department':
-                ViewEmployeesByDepartment();
+                viewEmployeesByDepartment();
+                break;
+
+            case 'View the total utilized budget of a department':
+                viewBudget();
                 break;
 
             case 'Add a department':
