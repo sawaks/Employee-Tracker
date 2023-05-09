@@ -20,7 +20,7 @@ This project is the proof that I learned through week 12. Build a command-line 
 3. After finish to type answers, you will see the rusult on same terminal. 
 
 ## Walkthrough Video
-
+https://drive.google.com/file/d/1id5ElumXw6c6Fhx0YIcVI5_0Rv5T1y0E/view
 
 ## GitHub Repository Link
 https://github.com/sawaks/Employee-Tracker.git
