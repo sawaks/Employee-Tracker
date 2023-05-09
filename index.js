@@ -56,7 +56,7 @@ function viewDepartments() {
             manu();
         })
 
-}
+};
 
 function viewAllRoles() {
     const sql = `SELECT role.id, title, department_name, salary
@@ -73,7 +73,7 @@ function viewAllRoles() {
         manu();
     });
 
-}
+};
 
 function viewAllEmployees() {
     const sql = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
@@ -94,7 +94,7 @@ function viewAllEmployees() {
         manu();
     });
 
-}
+};
 
 function viewEmplyeesByManager() {
     return inquirer.prompt({
@@ -141,7 +141,7 @@ function viewEmplyeesByManager() {
                     }
                 });
         });
-}
+};
 
 function viewEmployeesByDepartment() {
     return inquirer.prompt([
@@ -183,7 +183,7 @@ function viewEmployeesByDepartment() {
                     manu();
                 })
         });
-}
+};
 
 function viewBudget() {
     const sql = `SELECT department.department_name, SUM(role.salary) AS budget
@@ -201,7 +201,7 @@ function viewBudget() {
         manu();
     });
 
-}
+};
 function addDepartment() {
     return inquirer.prompt({
         type: 'input',
@@ -220,7 +220,7 @@ function addDepartment() {
                     manu();
                 });
         });
-}
+};
 
 function addRole() {
     return inquirer.prompt([{
@@ -271,7 +271,7 @@ function addRole() {
                     }
                 })
         });
-}
+};
 function AddEmployee() {
     return inquirer.prompt([{
         type: 'input',
@@ -348,7 +348,7 @@ function AddEmployee() {
                     }
                 });
         });
-}
+};
 function updateEmployeeRole() {
     return inquirer.prompt([{
         type: 'list',
@@ -412,7 +412,7 @@ function updateEmployeeRole() {
                 })
 
         });
-}
+};
 
 function updateEmployeesManagers() {
     return inquirer.prompt([{
@@ -481,7 +481,7 @@ function updateEmployeesManagers() {
                 })
 
         });
-}
+};
 function deleteDepartment() {
     return inquirer.prompt([{
         type: 'list',
@@ -519,7 +519,7 @@ function deleteDepartment() {
                     }
                 })
         });
-}
+};
 
 function deleteRole() {
     return inquirer.prompt([{
@@ -560,7 +560,7 @@ function deleteRole() {
 
                 })
         });
-}
+};
 
 function deleteEmployee() {
     return inquirer.prompt([{
@@ -592,7 +592,7 @@ function deleteEmployee() {
                     }
                 })
         });
-}
+};
 
 function selectOption(options) {
     if (options) {
@@ -659,5 +659,5 @@ function selectOption(options) {
     } else {
         return '';
     }
-}
+};
 manu();
